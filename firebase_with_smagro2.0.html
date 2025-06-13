@@ -1,0 +1,1091 @@
+<!DOCTYPE html>
+<html lang="en" class="h-full">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SMART AGRO Dashboard</title>
+    <base target="_self">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@preline/preline@2.0.0/dist/preline.min.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-database-compat.js"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        primary: {
+                            50: '#f0fdf4',
+                            100: '#dcfce7',
+                            200: '#bbf7d0',
+                            300: '#86efac',
+                            400: '#4ade80',
+                            500: '#22c55e',
+                            600: '#16a34a',
+                            700: '#15803d',
+                            800: '#166534',
+                            900: '#14532d',
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+        .animate-pulse { animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite; }
+        .floating-btn {
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+        }
+        .floating-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+        }
+        .transition-all {
+            transition-property: all;
+            transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+            transition-duration: 150ms;
+        }
+    </style>
+</head>
+<body class="bg-gray-50 dark:bg-gray-900 min-h-screen flex flex-col">
+    <div id="app" class="flex flex-col min-h-screen">
+        <!-- Authentication Screens -->
+        <div id="auth-container" class="flex-1 flex items-center justify-center p-4">
+            <!-- Sign In Form -->
+            <div id="signin-form" class="w-full max-w-md bg-white dark:bg-gray-800 rounded-lg shadow-md overflow-hidden transition-all">
+                <div class="p-8">
+                    <div class="flex justify-center mb-6">
+                        <div class="bg-primary-500 text-white p-3 rounded-full">
+                            <i class="fas fa-leaf text-3xl"></i>
+                        </div>
+                    </div>
+                    <h2 class="text-2xl font-bold text-center text-gray-800 dark:text-white mb-1">SMART AGRO</h2>
+                    <p class="text-center text-gray-600 dark:text-gray-300 mb-6">Sign in to your dashboard</p>
+                    
+                    <form id="signin-form-elements" class="space-y-4">
+                        <div>
+                            <label for="signin-email" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Email</label>
+                            <input type="email" id="signin-email" required class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 dark:bg-gray-700 dark:text-white">
+                        </div>
+                        <div>
+                            <label for="signin-password" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Password</label>
+                            <input type="password" id="signin-password" required class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 dark:bg-gray-700 dark:text-white">
+                        </div>
+                        <div class="flex items-center justify-between">
+                            <div class="flex items-center">
+                                <input id="remember-me" type="checkbox" class="h-4 w-4 text-primary-600 focus:ring-primary-500 border-gray-300 rounded dark:bg-gray-700 dark:border-gray-600">
+                                <label for="remember-me" class="ml-2 block text-sm text-gray-700 dark:text-gray-300">Remember me</label>
+                            </div>
+                            <a href="#" id="forgot-password" class="text-sm text-primary-600 hover:text-primary-500 dark:text-primary-400 dark:hover:text-primary-300">Forgot password?</a>
+                        </div>
+                        <button type="submit" class="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-primary-600 hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500">Sign In</button>
+                    </form>
+                    
+                    <div class="mt-6">
+                        <p class="text-center text-sm text-gray-600 dark:text-gray-400">
+                            Don't have an account? 
+                            <a href="#" id="show-signup" class="font-medium text-primary-600 hover:text-primary-500 dark:text-primary-400 dark:hover:text-primary-300">Sign up</a>
+                        </p>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Sign Up Form (hidden by default) -->
+            <div id="signup-form" class="w-full max-w-md bg-white dark:bg-gray-800 rounded-lg shadow-md overflow-hidden hidden transition-all">
+                <div class="p-8">
+                    <div class="flex justify-center mb-6">
+                        <div class="bg-primary-500 text-white p-3 rounded-full">
+                            <i class="fas fa-leaf text-3xl"></i>
+                        </div>
+                    </div>
+                    <h2 class="text-2xl font-bold text-center text-gray-800 dark:text-white mb-1">Create Account</h2>
+                    <p class="text-center text-gray-600 dark:text-gray-300 mb-6">Join SMART AGRO today</p>
+                    
+                    <form id="signup-form-elements" class="space-y-4">
+                        <div>
+                            <label for="signup-name" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Full Name</label>
+                            <input type="text" id="signup-name" required class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 dark:bg-gray-700 dark:text-white">
+                        </div>
+                        <div>
+                            <label for="signup-email" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Email</label>
+                            <input type="email" id="signup-email" required class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 dark:bg-gray-700 dark:text-white">
+                        </div>
+                        <div>
+                            <label for="signup-password" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Password</label>
+                            <input type="password" id="signup-password" required minlength="6" class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 dark:bg-gray-700 dark:text-white">
+                        </div>
+                        <div>
+                            <label for="signup-confirm-password" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Confirm Password</label>
+                            <input type="password" id="signup-confirm-password" required minlength="6" class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 dark:bg-gray-700 dark:text-white">
+                        </div>
+                        <div class="flex items-center">
+                            <input id="terms" type="checkbox" required class="h-4 w-4 text-primary-600 focus:ring-primary-500 border-gray-300 rounded dark:bg-gray-700 dark:border-gray-600">
+                            <label for="terms" class="ml-2 block text-sm text-gray-700 dark:text-gray-300">I agree to the <a href="#" class="text-primary-600 hover:text-primary-500 dark:text-primary-400 dark:hover:text-primary-300">Terms and Conditions</a></label>
+                        </div>
+                        <button type="submit" class="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-primary-600 hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500">Create Account</button>
+                    </form>
+                    
+                    <div class="mt-6">
+                        <p class="text-center text-sm text-gray-600 dark:text-gray-400">
+                            Already have an account? 
+                            <a href="#" id="show-signin" class="font-medium text-primary-600 hover:text-primary-500 dark:text-primary-400 dark:hover:text-primary-300">Sign in</a>
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Main Dashboard (hidden by default) -->
+        <div id="dashboard-container" class="hidden flex-1 flex flex-col">
+            <!-- Header -->
+            <header class="bg-white dark:bg-gray-800 shadow-sm">
+                <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                    <div class="flex justify-between h-16 items-center">
+                        <div class="flex items-center">
+                            <div class="flex-shrink-0 flex items-center">
+                                <i class="fas fa-leaf text-primary-500 text-2xl"></i>
+                                <span class="ml-2 text-xl font-semibold dark:text-white">SMART AGRO</span>
+                            </div>
+                        </div>
+                        <div class="flex items-center space-x-4">
+                            <button id="theme-toggle" class="p-2 rounded-full text-gray-500 dark:text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 focus:outline-none">
+                                <i class="fas fa-moon dark:hidden"></i>
+                                <i class="fas fa-sun hidden dark:block"></i>
+                            </button>
+                            <div class="relative" id="profile-dropdown">
+                                <button class="flex items-center space-x-2 focus:outline-none" id="profile-dropdown-button">
+                                    <div class="h-8 w-8 rounded-full bg-primary-500 flex items-center justify-center text-white">
+                                        <span id="profile-initial">U</span>
+                                    </div>
+                                    <span class="text-gray-700 dark:text-gray-300 font-medium" id="profile-name">User</span>
+                                </button>
+                                <div class="hidden absolute right-0 mt-2 w-48 bg-white dark:bg-gray-800 rounded-md shadow-lg py-1 z-10" id="profile-dropdown-menu">
+                                    <a href="#" id="profile-link" class="block px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">Profile</a>
+                                    <a href="#" id="logout-link" class="block px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">Logout</a>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </header>
+            
+            <!-- Main Content -->
+            <main class="flex-1 bg-gray-50 dark:bg-gray-900">
+                <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+                    <!-- Dashboard Header -->
+                    <div class="mb-6 flex justify-between items-center">
+                        <h1 class="text-2xl font-bold text-gray-900 dark:text-white">Dashboard</h1>
+                        <div class="flex items-center space-x-2">
+                            <span class="text-sm text-gray-500 dark:text-gray-400">Last updated: <span id="last-updated">Just now</span></span>
+                            <button id="refresh-data" class="p-2 rounded-full text-gray-500 dark:text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800">
+                                <i class="fas fa-sync-alt"></i>
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <!-- Stats Cards -->
+                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
+                        <div class="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
+                            <div class="flex items-center justify-between">
+                                <div>
+                                    <p class="text-sm font-medium text-gray-500 dark:text-gray-400">Soil Moisture</p>
+                                    <p class="mt-1 text-3xl font-semibold text-gray-900 dark:text-white"><span id="soil-moisture-value">42</span>%</p>
+                                </div>
+                                <div class="p-3 rounded-full bg-blue-100 dark:bg-blue-900 text-blue-600 dark:text-blue-300">
+                                    <i class="fas fa-tint text-xl"></i>
+                                </div>
+                            </div>
+                            <div class="mt-4">
+                                <div class="h-2 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
+                                    <div class="h-full bg-blue-500 rounded-full" style="width: 42%"></div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
+                            <div class="flex items-center justify-between">
+                                <div>
+                                    <p class="text-sm font-medium text-gray-500 dark:text-gray-400">Humidity</p>
+                                    <p class="mt-1 text-3xl font-semibold text-gray-900 dark:text-white"><span id="humidity-value">65</span>%</p>
+                                </div>
+                                <div class="p-3 rounded-full bg-green-100 dark:bg-green-900 text-green-600 dark:text-green-300">
+                                    <i class="fas fa-cloud text-xl"></i>
+                                </div>
+                            </div>
+                            <div class="mt-4">
+                                <div class="h-2 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
+                                    <div class="h-full bg-green-500 rounded-full" style="width: 65%"></div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
+                            <div class="flex items-center justify-between">
+                                <div>
+                                    <p class="text-sm font-medium text-gray-500 dark:text-gray-400">Temperature</p>
+                                    <p class="mt-1 text-3xl font-semibold text-gray-900 dark:text-white"><span id="temperature-value">24</span>°C</p>
+                                </div>
+                                <div class="p-3 rounded-full bg-yellow-100 dark:bg-yellow-900 text-yellow-600 dark:text-yellow-300">
+                                    <i class="fas fa-temperature-high text-xl"></i>
+                                </div>
+                            </div>
+                            <div class="mt-4">
+                                <div class="h-2 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
+                                    <div class="h-full bg-yellow-500 rounded-full" style="width: 60%"></div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
+                            <div class="flex items-center justify-between">
+                                <div>
+                                    <p class="text-sm font-medium text-gray-500 dark:text-gray-400">NPK Level</p>
+                                    <p class="mt-1 text-3xl font-semibold text-gray-900 dark:text-white"><span id="npk-value">7.2</span></p>
+                                </div>
+                                <div class="p-3 rounded-full bg-purple-100 dark:bg-purple-900 text-purple-600 dark:text-purple-300">
+                                    <i class="fas fa-flask text-xl"></i>
+                                </div>
+                            </div>
+                            <div class="mt-4">
+                                <div class="h-2 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
+                                    <div class="h-full bg-purple-500 rounded-full" style="width: 72%"></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Main Content Grid -->
+                    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                        <!-- Camera Feed -->
+                        <div class="lg:col-span-2 bg-white dark:bg-gray-800 rounded-lg shadow overflow-hidden">
+                            <div class="p-4 border-b border-gray-200 dark:border-gray-700">
+                                <h2 class="text-lg font-medium text-gray-900 dark:text-white">Field Camera</h2>
+                            </div>
+                            <div class="p-4">
+                                <div class="aspect-w-16 aspect-h-9 bg-gray-200 dark:bg-gray-700 rounded-lg overflow-hidden">
+                                    <img id="camera-feed" src="" alt="Field camera feed" class="w-full h-full object-cover">
+                                </div>
+                                <div class="mt-4 flex justify-between items-center">
+                                    <div class="flex space-x-2">
+                                        <button class="px-3 py-1 bg-primary-500 text-white rounded-md hover:bg-primary-600 focus:outline-none">
+                                            <i class="fas fa-expand mr-1"></i> Fullscreen
+                                        </button>
+                                        <button class="px-3 py-1 bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-md hover:bg-gray-300 dark:hover:bg-gray-600 focus:outline-none">
+                                            <i class="fas fa-camera mr-1"></i> Capture
+                                        </button>
+                                    </div>
+                                    <div class="text-sm text-gray-500 dark:text-gray-400">
+                                        <i class="fas fa-circle text-red-500 mr-1"></i> Live
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Sensor Data Chart -->
+                        <div class="bg-white dark:bg-gray-800 rounded-lg shadow overflow-hidden">
+                            <div class="p-4 border-b border-gray-200 dark:border-gray-700">
+                                <h2 class="text-lg font-medium text-gray-900 dark:text-white">Sensor Data</h2>
+                            </div>
+                            <div class="p-4">
+                                <div class="h-64">
+                                    <canvas id="sensor-chart"></canvas>
+                                </div>
+                                <div class="mt-4 grid grid-cols-2 gap-2">
+                                    <div class="flex items-center">
+                                        <div class="w-3 h-3 rounded-full bg-blue-500 mr-2"></div>
+                                        <span class="text-sm text-gray-600 dark:text-gray-400">Soil Moisture</span>
+                                    </div>
+                                    <div class="flex items-center">
+                                        <div class="w-3 h-3 rounded-full bg-green-500 mr-2"></div>
+                                        <span class="text-sm text-gray-600 dark:text-gray-400">Humidity</span>
+                                    </div>
+                                    <div class="flex items-center">
+                                        <div class="w-3 h-3 rounded-full bg-yellow-500 mr-2"></div>
+                                        <span class="text-sm text-gray-600 dark:text-gray-400">Temperature</span>
+                                    </div>
+                                    <div class="flex items-center">
+                                        <div class="w-3 h-3 rounded-full bg-purple-500 mr-2"></div>
+                                        <span class="text-sm text-gray-600 dark:text-gray-400">NPK Level</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Quick Actions -->
+                        <div class="bg-white dark:bg-gray-800 rounded-lg shadow overflow-hidden">
+                            <div class="p-4 border-b border-gray-200 dark:border-gray-700">
+                                <h2 class="text-lg font-medium text-gray-900 dark:text-white">Quick Actions</h2>
+                            </div>
+                            <div class="p-4 grid grid-cols-2 gap-4">
+                                <button id="irrigation-btn" class="p-4 bg-blue-50 dark:bg-blue-900/30 rounded-lg flex flex-col items-center justify-center hover:bg-blue-100 dark:hover:bg-blue-900/50 transition-colors">
+                                    <div class="w-10 h-10 bg-blue-100 dark:bg-blue-800 rounded-full flex items-center justify-center mb-2">
+                                        <i class="fas fa-tint text-blue-600 dark:text-blue-300"></i>
+                                    </div>
+                                    <span class="text-sm font-medium text-gray-700 dark:text-gray-300">Irrigation</span>
+                                </button>
+                                <button id="fertilize-btn" class="p-4 bg-green-50 dark:bg-green-900/30 rounded-lg flex flex-col items-center justify-center hover:bg-green-100 dark:hover:bg-green-900/50 transition-colors">
+                                    <div class="w-10 h-10 bg-green-100 dark:bg-green-800 rounded-full flex items-center justify-center mb-2">
+                                        <i class="fas fa-spray-can text-green-600 dark:text-green-300"></i>
+                                    </div>
+                                    <span class="text-sm font-medium text-gray-700 dark:text-gray-300">Fertilize</span>
+                                </button>
+                                <button id="lighting-btn" class="p-4 bg-yellow-50 dark:bg-yellow-900/30 rounded-lg flex flex-col items-center justify-center hover:bg-yellow-100 dark:hover:bg-yellow-900/50 transition-colors">
+                                    <div class="w-10 h-10 bg-yellow-100 dark:bg-yellow-800 rounded-full flex items-center justify-center mb-2">
+                                        <i class="fas fa-sun text-yellow-600 dark:text-yellow-300"></i>
+                                    </div>
+                                    <span class="text-sm font-medium text-gray-700 dark:text-gray-300">Lighting</span>
+                                    <span class="text-xs text-gray-500 dark:text-gray-400 mt-1" id="lighting-status">OFF</span>
+                                </button>
+                                <button id="analytics-btn" class="p-4 bg-purple-50 dark:bg-purple-900/30 rounded-lg flex flex-col items-center justify-center hover:bg-purple-100 dark:hover:bg-purple-900/50 transition-colors">
+                                    <div class="w-10 h-10 bg-purple-100 dark:bg-purple-800 rounded-full flex items-center justify-center mb-2">
+                                        <i class="fas fa-chart-line text-purple-600 dark:text-purple-300"></i>
+                                    </div>
+                                    <span class="text-sm font-medium text-gray-700 dark:text-gray-300">Analytics</span>
+                                </button>
+                            </div>
+                        </div>
+                        
+                        <!-- Recent Alerts -->
+                        <div class="lg:col-span-2 bg-white dark:bg-gray-800 rounded-lg shadow overflow-hidden">
+                            <div class="p-4 border-b border-gray-200 dark:border-gray-700">
+                                <h2 class="text-lg font-medium text-gray-900 dark:text-white">Recent Alerts</h2>
+                            </div>
+                            <div class="divide-y divide-gray-200 dark:divide-gray-700" id="alerts-container">
+                                <!-- Alerts will be populated from Firebase -->
+                            </div>
+                        </div>
+                        
+                        <!-- Weather Forecast -->
+                        <div class="bg-white dark:bg-gray-800 rounded-lg shadow overflow-hidden">
+                            <div class="p-4 border-b border-gray-200 dark:border-gray-700">
+                                <h2 class="text-lg font-medium text-gray-900 dark:text-white">Weather Forecast</h2>
+                            </div>
+                            <div class="p-4">
+                                <div class="flex items-center justify-between mb-4">
+                                    <div>
+                                        <p class="text-sm text-gray-500 dark:text-gray-400">Today</p>
+                                        <p class="text-2xl font-semibold text-gray-900 dark:text-white" id="current-temp">24°C</p>
+                                    </div>
+                                    <div class="text-4xl text-yellow-500">
+                                        <i class="fas fa-sun" id="weather-icon"></i>
+                                    </div>
+                                </div>
+                                <div class="space-y-4">
+                                    <div class="flex items-center justify-between">
+                                        <div class="flex items-center">
+                                            <i class="fas fa-wind text-gray-500 dark:text-gray-400 mr-2"></i>
+                                            <span class="text-sm text-gray-600 dark:text-gray-400">Wind</span>
+                                        </div>
+                                        <span class="text-sm font-medium text-gray-900 dark:text-white" id="wind-speed">12 km/h</span>
+                                    </div>
+                                    <div class="flex items-center justify-between">
+                                        <div class="flex items-center">
+                                            <i class="fas fa-tint text-gray-500 dark:text-gray-400 mr-2"></i>
+                                            <span class="text-sm text-gray-600 dark:text-gray-400">Humidity</span>
+                                        </div>
+                                        <span class="text-sm font-medium text-gray-900 dark:text-white" id="weather-humidity">65%</span>
+                                    </div>
+                                    <div class="flex items-center justify-between">
+                                        <div class="flex items-center">
+                                            <i class="fas fa-cloud-rain text-gray-500 dark:text-gray-400 mr-2"></i>
+                                            <span class="text-sm text-gray-600 dark:text-gray-400">Precipitation</span>
+                                        </div>
+                                        <span class="text-sm font-medium text-gray-900 dark:text-white" id="precipitation">10%</span>
+                                    </div>
+                                </div>
+                                <div class="mt-6 pt-4 border-t border-gray-200 dark:border-gray-700">
+                                    <div class="grid grid-cols-4 gap-2 text-center" id="forecast-container">
+                                        <!-- Forecast will be populated from Firebase -->
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </main>
+        </div>
+        
+        <!-- Profile Modal (hidden by default) -->
+        <div id="profile-modal" class="hidden fixed inset-0 overflow-y-auto z-50">
+            <div class="flex items-center justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
+                <div class="fixed inset-0 transition-opacity" aria-hidden="true">
+                    <div class="absolute inset-0 bg-gray-500 dark:bg-gray-900 opacity-75"></div>
+                </div>
+                <span class="hidden sm:inline-block sm:align-middle sm:h-screen" aria-hidden="true">&#8203;</span>
+                <div class="inline-block align-bottom bg-white dark:bg-gray-800 rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full">
+                    <div class="bg-white dark:bg-gray-800 px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
+                        <div class="sm:flex sm:items-start">
+                            <div class="mx-auto flex-shrink-0 flex items-center justify-center h-12 w-12 rounded-full bg-primary-100 dark:bg-primary-900/30 sm:mx-0 sm:h-10 sm:w-10">
+                                <i class="fas fa-user text-primary-600 dark:text-primary-400"></i>
+                            </div>
+                            <div class="mt-3 text-center sm:mt-0 sm:ml-4 sm:text-left">
+                                <h3 class="text-lg leading-6 font-medium text-gray-900 dark:text-white" id="modal-title">Profile Settings</h3>
+                                <div class="mt-2">
+                                    <form id="profile-form" class="space-y-4">
+                                        <div>
+                                            <label for="profile-name-input" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Full Name</label>
+                                            <input type="text" id="profile-name-input" class="mt-1 block w-full border border-gray-300 dark:border-gray-600 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-primary-500 focus:border-primary-500 dark:bg-gray-700 dark:text-white">
+                                        </div>
+                                        <div>
+                                            <label for="profile-email-input" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Email</label>
+                                            <input type="email" id="profile-email-input" class="mt-1 block w-full border border-gray-300 dark:border-gray-600 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-primary-500 focus:border-primary-500 dark:bg-gray-700 dark:text-white">
+                                        </div>
+                                        <div>
+                                            <label for="profile-phone-input" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Phone Number</label>
+                                            <input type="tel" id="profile-phone-input" class="mt-1 block w-full border border-gray-300 dark:border-gray-600 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-primary-500 focus:border-primary-500 dark:bg-gray-700 dark:text-white">
+                                        </div>
+                                        <div>
+                                            <label for="profile-location-input" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Location</label>
+                                            <input type="text" id="profile-location-input" class="mt-1 block w-full border border-gray-300 dark:border-gray-600 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-primary-500 focus:border-primary-500 dark:bg-gray-700 dark:text-white">
+                                        </div>
+                                    </form>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="bg-gray-50 dark:bg-gray-700 px-4 py-3 sm:px-6 sm:flex sm:flex-row-reverse">
+                        <button type="button" id="save-profile" class="w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-primary-600 text-base font-medium text-white hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 sm:ml-3 sm:w-auto sm:text-sm">Save</button>
+                        <button type="button" id="cancel-profile" class="mt-3 w-full inline-flex justify-center rounded-md border border-gray-300 dark:border-gray-600 shadow-sm px-4 py-2 bg-white dark:bg-gray-600 text-base font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-500 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 sm:mt-0 sm:ml-3 sm:w-auto sm:text-sm">Cancel</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script>
+        // Firebase configuration
+       const firebaseConfig = {
+  	 apiKey: "AIzaSyAiW5hBwHta8-QcslLs5nzfgxp6MGo69d4",
+  	 authDomain: "smart-agro-21fcc.firebaseapp.com",
+ 	 projectId: "smart-agro-21fcc",
+  	 storageBucket: "smart-agro-21fcc.firebasestorage.app",
+  	 messagingSenderId: "388342200870",
+  	 appId: "1:388342200870:web:d0be1523d785baf432c4e7",
+	 databaseURL: "https://smart-agro-21fcc-default-rtdb.firebaseio.com"
+	};
+
+        // Initialize Firebase
+        firebase.initializeApp(firebaseConfig);
+        const auth = firebase.auth();
+        const database = firebase.database();
+
+        // DOM Elements
+        const authContainer = document.getElementById('auth-container');
+        const dashboardContainer = document.getElementById('dashboard-container');
+        const signinForm = document.getElementById('signin-form');
+        const signupForm = document.getElementById('signup-form');
+        const showSignup = document.getElementById('show-signup');
+        const showSignin = document.getElementById('show-signin');
+        const signinFormElements = document.getElementById('signin-form-elements');
+        const signupFormElements = document.getElementById('signup-form-elements');
+        const profileDropdown = document.getElementById('profile-dropdown');
+        const profileDropdownButton = document.getElementById('profile-dropdown-button');
+        const profileDropdownMenu = document.getElementById('profile-dropdown-menu');
+        const profileLink = document.getElementById('profile-link');
+        const logoutLink = document.getElementById('logout-link');
+        const profileModal = document.getElementById('profile-modal');
+        const saveProfile = document.getElementById('save-profile');
+        const cancelProfile = document.getElementById('cancel-profile');
+        const profileForm = document.getElementById('profile-form');
+        const themeToggle = document.getElementById('theme-toggle');
+        const refreshData = document.getElementById('refresh-data');
+        const lastUpdated = document.getElementById('last-updated');
+        const soilMoistureValue = document.getElementById('soil-moisture-value');
+        const humidityValue = document.getElementById('humidity-value');
+        const temperatureValue = document.getElementById('temperature-value');
+        const npkValue = document.getElementById('npk-value');
+        const cameraFeed = document.getElementById('camera-feed');
+        const profileName = document.getElementById('profile-name');
+        const profileInitial = document.getElementById('profile-initial');
+        const profileNameInput = document.getElementById('profile-name-input');
+        const profileEmailInput = document.getElementById('profile-email-input');
+        const profilePhoneInput = document.getElementById('profile-phone-input');
+        const profileLocationInput = document.getElementById('profile-location-input');
+        const alertsContainer = document.getElementById('alerts-container');
+        const forecastContainer = document.getElementById('forecast-container');
+        const currentTemp = document.getElementById('current-temp');
+        const weatherIcon = document.getElementById('weather-icon');
+        const windSpeed = document.getElementById('wind-speed');
+        const weatherHumidity = document.getElementById('weather-humidity');
+        const precipitation = document.getElementById('precipitation');
+        const lightingStatus = document.getElementById('lighting-status');
+        const irrigationBtn = document.getElementById('irrigation-btn');
+        const fertilizeBtn = document.getElementById('fertilize-btn');
+        const lightingBtn = document.getElementById('lighting-btn');
+        const analyticsBtn = document.getElementById('analytics-btn');
+
+        // Initialize Chart
+        let sensorChart;
+        function initChart() {
+            const ctx = document.getElementById('sensor-chart').getContext('2d');
+            sensorChart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: ['6AM', '9AM', '12PM', '3PM', '6PM', '9PM', '12AM'],
+                    datasets: [
+                        {
+                            label: 'Soil Moisture',
+                            data: [45, 42, 40, 38, 36, 35, 34],
+                            borderColor: '#3b82f6',
+                            backgroundColor: 'rgba(59, 130, 246, 0.1)',
+                            tension: 0.4,
+                            fill: true
+                        },
+                        {
+                            label: 'Humidity',
+                            data: [60, 58, 55, 53, 60, 65, 68],
+                            borderColor: '#10b981',
+                            backgroundColor: 'rgba(16, 185, 129, 0.1)',
+                            tension: 0.4,
+                            fill: true
+                        },
+                        {
+                            label: 'Temperature',
+                            data: [20, 22, 24, 26, 25, 23, 21],
+                            borderColor: '#f59e0b',
+                            backgroundColor: 'rgba(245, 158, 11, 0.1)',
+                            tension: 0.4,
+                            fill: true
+                        },
+                        {
+                            label: 'NPK Level',
+                            data: [6.8, 7.0, 7.2, 7.1, 7.0, 6.9, 6.8],
+                            borderColor: '#8b5cf6',
+                            backgroundColor: 'rgba(139, 92, 246, 0.1)',
+                            tension: 0.4,
+                            fill: true
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            display: false
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: false
+                        }
+                    }
+                }
+            });
+        }
+
+        // Update sensor data from Firebase
+        function updateSensorData() {
+            const userId = auth.currentUser.uid;
+            const sensorRef = database.ref(`users/${userId}/sensorData`);
+            
+            sensorRef.on('value', (snapshot) => {
+                const data = snapshot.val();
+                if (data) {
+                    // Update DOM
+                    soilMoistureValue.textContent = data.soilMoisture;
+                    humidityValue.textContent = data.humidity;
+                    temperatureValue.textContent = data.temperature;
+                    npkValue.textContent = data.npk;
+                    
+                    // Update progress bars
+                    document.querySelector('.bg-blue-500').style.width = `${data.soilMoisture}%`;
+                    document.querySelector('.bg-green-500').style.width = `${data.humidity}%`;
+                    document.querySelector('.bg-yellow-500').style.width = `${(data.temperature / 40) * 100}%`;
+                    document.querySelector('.bg-purple-500').style.width = `${(data.npk / 10) * 100}%`;
+                    
+                    // Update chart data
+                    sensorChart.data.datasets.forEach(dataset => {
+                        // Shift all data points left
+                        dataset.data.shift();
+                        
+                        // Add new data point at the end
+                        if (dataset.label === 'Soil Moisture') {
+                            dataset.data.push(data.soilMoisture);
+                        } else if (dataset.label === 'Humidity') {
+                            dataset.data.push(data.humidity);
+                        } else if (dataset.label === 'Temperature') {
+                            dataset.data.push(data.temperature);
+                        } else if (dataset.label === 'NPK Level') {
+                            dataset.data.push(parseFloat(data.npk));
+                        }
+                    });
+                    
+                    sensorChart.update();
+                    
+                    // Update last updated time
+                    const now = new Date();
+                    lastUpdated.textContent = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+                }
+            });
+        }
+
+        // Load camera feed from Firebase
+        function loadCameraFeed() {
+            const userId = auth.currentUser.uid;
+            const cameraRef = database.ref(`users/${userId}/cameraFeed`);
+            
+            cameraRef.on('value', (snapshot) => {
+                const feed = snapshot.val();
+                if (feed && feed.currentImage) {
+                    cameraFeed.src = feed.currentImage;
+                }
+            });
+        }
+
+        // Load alerts from Firebase
+        function loadAlerts() {
+            const userId = auth.currentUser.uid;
+            const alertsRef = database.ref(`users/${userId}/alerts`);
+            
+            alertsRef.on('value', (snapshot) => {
+                const alerts = snapshot.val();
+                alertsContainer.innerHTML = '';
+                
+                if (alerts) {
+                    Object.keys(alerts).forEach(key => {
+                        const alert = alerts[key];
+                        const alertElement = document.createElement('div');
+                        alertElement.className = 'p-4 flex items-start';
+                        alertElement.innerHTML = `
+                            <div class="flex-shrink-0 pt-0.5">
+                                <div class="h-10 w-10 rounded-full ${getAlertColorClass(alert.type)} flex items-center justify-center">
+                                    <i class="fas ${getAlertIcon(alert.type)} ${getAlertTextColorClass(alert.type)}"></i>
+                                </div>
+                            </div>
+                            <div class="ml-4 flex-1">
+                                <div class="flex items-center justify-between">
+                                    <p class="text-sm font-medium text-gray-900 dark:text-white">${alert.title}</p>
+                                    <p class="text-xs text-gray-500 dark:text-gray-400">${formatTime(alert.timestamp)}</p>
+                                </div>
+                                <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">${alert.message}</p>
+                            </div>
+                        `;
+                        alertsContainer.appendChild(alertElement);
+                    });
+                }
+            });
+        }
+
+        // Load weather forecast from Firebase
+        function loadWeatherForecast() {
+            const userId = auth.currentUser.uid;
+            const weatherRef = database.ref(`users/${userId}/weather`);
+            
+            weatherRef.on('value', (snapshot) => {
+                const weather = snapshot.val();
+                if (weather) {
+                    // Update current weather
+                    currentTemp.textContent = `${weather.current.temp}°C`;
+                    weatherIcon.className = `fas ${getWeatherIcon(weather.current.condition)} text-4xl`;
+                    windSpeed.textContent = `${weather.current.windSpeed} km/h`;
+                    weatherHumidity.textContent = `${weather.current.humidity}%`;
+                    precipitation.textContent = `${weather.current.precipitation}%`;
+                    
+                    // Update forecast
+                    forecastContainer.innerHTML = '';
+                    weather.forecast.forEach(day => {
+                        const dayElement = document.createElement('div');
+                        dayElement.innerHTML = `
+                            <p class="text-xs text-gray-500 dark:text-gray-400">${day.day}</p>
+                            <i class="fas ${getWeatherIcon(day.condition)} text-xl text-gray-600 dark:text-gray-300 my-1"></i>
+                            <p class="text-sm font-medium text-gray-900 dark:text-white">${day.temp}°C</p>
+                        `;
+                        forecastContainer.appendChild(dayElement);
+                    });
+                }
+            });
+        }
+
+        // Helper functions
+        function getAlertColorClass(type) {
+            switch(type) {
+                case 'warning': return 'bg-yellow-100 dark:bg-yellow-900/30';
+                case 'danger': return 'bg-red-100 dark:bg-red-900/30';
+                case 'info': return 'bg-blue-100 dark:bg-blue-900/30';
+                default: return 'bg-gray-100 dark:bg-gray-900/30';
+            }
+        }
+
+        function getAlertTextColorClass(type) {
+            switch(type) {
+                case 'warning': return 'text-yellow-500 dark:text-yellow-400';
+                case 'danger': return 'text-red-500 dark:text-red-400';
+                case 'info': return 'text-blue-500 dark:text-blue-400';
+                default: return 'text-gray-500 dark:text-gray-400';
+            }
+        }
+
+        function getAlertIcon(type) {
+            switch(type) {
+                case 'warning': return 'fa-exclamation-triangle';
+                case 'danger': return 'fa-skull-crossbones';
+                case 'info': return 'fa-info-circle';
+                default: return 'fa-bell';
+            }
+        }
+
+        function getWeatherIcon(condition) {
+            switch(condition) {
+                case 'sunny': return 'fa-sun text-yellow-500';
+                case 'cloudy': return 'fa-cloud text-gray-400';
+                case 'rainy': return 'fa-cloud-rain text-blue-400';
+                case 'thunderstorm': return 'fa-bolt text-purple-400';
+                default: return 'fa-sun text-yellow-500';
+            }
+        }
+
+        function formatTime(timestamp) {
+            const date = new Date(timestamp);
+            return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+        }
+
+        // Toggle between sign in and sign up forms
+        showSignup.addEventListener('click', (e) => {
+            e.preventDefault();
+            signinForm.classList.add('hidden');
+            signupForm.classList.remove('hidden');
+        });
+
+        showSignin.addEventListener('click', (e) => {
+            e.preventDefault();
+            signupForm.classList.add('hidden');
+            signinForm.classList.remove('hidden');
+        });
+
+        // Handle sign in form submission
+        signinFormElements.addEventListener('submit', (e) => {
+            e.preventDefault();
+            const email = document.getElementById('signin-email').value;
+            const password = document.getElementById('signin-password').value;
+            
+            // Sign in with Firebase
+            auth.signInWithEmailAndPassword(email, password)
+                .then((userCredential) => {
+                    // Signed in
+                    const user = userCredential.user;
+                    authContainer.classList.add('hidden');
+                    dashboardContainer.classList.remove('hidden');
+                    
+                    // Initialize dashboard
+                    initChart();
+                    updateSensorData();
+                    loadCameraFeed();
+                    loadAlerts();
+                    loadWeatherForecast();
+                    
+                    // Load user profile
+                    loadUserProfile(user.uid);
+                })
+                .catch((error) => {
+                    const errorCode = error.code;
+                    const errorMessage = error.message;
+                    alert(errorMessage);
+                });
+        });
+
+        // Handle sign up form submission
+        signupFormElements.addEventListener('submit', (e) => {
+            e.preventDefault();
+            const name = document.getElementById('signup-name').value;
+            const email = document.getElementById('signup-email').value;
+            const password = document.getElementById('signup-password').value;
+            const confirmPassword = document.getElementById('signup-confirm-password').value;
+            
+            // Validate passwords match
+            if (password !== confirmPassword) {
+                alert('Passwords do not match');
+                return;
+            }
+            
+            // Create user with Firebase
+            auth.createUserWithEmailAndPassword(email, password)
+                .then((userCredential) => {
+                    // Signed up
+                    const user = userCredential.user;
+                    
+                    // Save additional user data to Firebase
+                    database.ref(`users/${user.uid}/profile`).set({
+                        name: name,
+                        email: email,
+                        phone: '',
+                        location: ''
+                    });
+                    
+                    // Initialize default sensor data
+                    database.ref(`users/${user.uid}/sensorData`).set({
+                        soilMoisture: 42,
+                        humidity: 65,
+                        temperature: 24,
+                        npk: 7.2
+                    });
+                    
+                    // Initialize camera feed
+                    database.ref(`users/${user.uid}/cameraFeed`).set({
+                        currentImage: 'https://images.unsplash.com/photo-1500382017468-9049fed747ef?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1000&q=80'
+                    });
+                    
+                    // Initialize alerts
+                    database.ref(`users/${user.uid}/alerts`).set({
+                        alert1: {
+                            title: 'Low Soil Moisture',
+                            message: 'Soil moisture level dropped below 30%. Consider irrigation.',
+                            type: 'warning',
+                            timestamp: Date.now() - 600000 // 10 minutes ago
+                        },
+                        alert2: {
+                            title: 'High Temperature',
+                            message: 'Temperature reached 28°C. Consider shading or ventilation.',
+                            type: 'warning',
+                            timestamp: Date.now() - 2700000 // 45 minutes ago
+                        },
+                        alert3: {
+                            title: 'NPK Imbalance',
+                            message: 'Nitrogen levels are low. Consider fertilization.',
+                            type: 'info',
+                            timestamp: Date.now() - 7200000 // 2 hours ago
+                        }
+                    });
+                    
+                    // Initialize weather data
+                    database.ref(`users/${user.uid}/weather`).set({
+                        current: {
+                            temp: 24,
+                            condition: 'sunny',
+                            windSpeed: 12,
+                            humidity: 65,
+                            precipitation: 10
+                        },
+                        forecast: [
+                            { day: 'Tomorrow', temp: 23, condition: 'sunny' },
+                            { day: 'Wed', temp: 21, condition: 'rainy' },
+                            { day: 'Thu', temp: 22, condition: 'cloudy' },
+                            { day: 'Fri', temp: 25, condition: 'sunny' }
+                        ]
+                    });
+                    
+                    // Show sign in form after registration
+                    signupForm.classList.add('hidden');
+                    signinForm.classList.remove('hidden');
+                    
+                    // Pre-fill email in sign in form
+                    document.getElementById('signin-email').value = email;
+                    
+                    alert('Account created successfully! Please sign in.');
+                })
+                .catch((error) => {
+                    const errorCode = error.code;
+                    const errorMessage = error.message;
+                    alert(errorMessage);
+                });
+        });
+
+        // Load user profile from Firebase
+        function loadUserProfile(userId) {
+            database.ref(`users/${userId}/profile`).once('value')
+                .then((snapshot) => {
+                    const profile = snapshot.val();
+                    if (profile) {
+                        // Update profile info in header
+                        profileName.textContent = profile.name;
+                        profileInitial.textContent = profile.name.charAt(0);
+                        
+                        // Update profile form
+                        profileNameInput.value = profile.name;
+                        profileEmailInput.value = profile.email;
+                        profilePhoneInput.value = profile.phone || '';
+                        profileLocationInput.value = profile.location || '';
+                    }
+                });
+        }
+
+        // Toggle profile dropdown
+        profileDropdownButton.addEventListener('click', () => {
+            profileDropdownMenu.classList.toggle('hidden');
+        });
+
+        // Close dropdown when clicking outside
+        document.addEventListener('click', (e) => {
+            if (!profileDropdown.contains(e.target)) {
+                profileDropdownMenu.classList.add('hidden');
+            }
+        });
+
+        // Show profile modal
+        profileLink.addEventListener('click', (e) => {
+            e.preventDefault();
+            profileDropdownMenu.classList.add('hidden');
+            profileModal.classList.remove('hidden');
+        });
+
+        // Logout
+        logoutLink.addEventListener('click', (e) => {
+            e.preventDefault();
+            auth.signOut().then(() => {
+                dashboardContainer.classList.add('hidden');
+                authContainer.classList.remove('hidden');
+                signupForm.classList.add('hidden');
+                signinForm.classList.remove('hidden');
+            });
+        });
+
+        // Save profile changes to Firebase
+        saveProfile.addEventListener('click', () => {
+            const userId = auth.currentUser.uid;
+            const updates = {
+                name: profileNameInput.value,
+                email: profileEmailInput.value,
+                phone: profilePhoneInput.value,
+                location: profileLocationInput.value
+            };
+            
+            database.ref(`users/${userId}/profile`).update(updates)
+                .then(() => {
+                    // Update profile info in header
+                    profileName.textContent = updates.name;
+                    profileInitial.textContent = updates.name.charAt(0);
+                    
+                    profileModal.classList.add('hidden');
+                });
+        });
+
+        // Cancel profile editing
+        cancelProfile.addEventListener('click', () => {
+            profileModal.classList.add('hidden');
+        });
+
+        // Theme toggle
+        themeToggle.addEventListener('click', () => {
+            if (document.documentElement.classList.contains('dark')) {
+                document.documentElement.classList.remove('dark');
+                localStorage.setItem('theme', 'light');
+            } else {
+                document.documentElement.classList.add('dark');
+                localStorage.setItem('theme', 'dark');
+            }
+        });
+
+        // Check for saved theme preference
+        if (localStorage.getItem('theme') === 'dark' || (!localStorage.getItem('theme') && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+            document.documentElement.classList.add('dark');
+        } else {
+            document.documentElement.classList.remove('dark');
+        }
+
+        // Refresh data button
+        refreshData.addEventListener('click', () => {
+            refreshData.classList.add('animate-spin');
+            
+            // In a real app, this would trigger a new sensor reading
+            // For demo purposes, we'll just update the timestamp
+            const now = new Date();
+            lastUpdated.textContent = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+            
+            setTimeout(() => {
+                refreshData.classList.remove('animate-spin');
+            }, 1000);
+        });
+
+        // Quick action buttons
+        lightingBtn.addEventListener('click', () => {
+            const userId = auth.currentUser.uid;
+            const currentStatus = lightingStatus.textContent;
+            const newStatus = currentStatus === 'ON' ? 'OFF' : 'ON';
+            
+            // Update lighting status in Firebase
+            database.ref(`users/${userId}/lighting`).set({
+                status: newStatus,
+                lastUpdated: Date.now()
+            }).then(() => {
+                lightingStatus.textContent = newStatus;
+                
+                // Show alert
+                database.ref(`users/${userId}/alerts`).push({
+                    title: `Lighting ${newStatus}`,
+                    message: `Grow lights have been turned ${newStatus.toLowerCase()}.`,
+                    type: 'info',
+                    timestamp: Date.now()
+                });
+            });
+        });
+
+        irrigationBtn.addEventListener('click', () => {
+            const userId = auth.currentUser.uid;
+            
+            // Trigger irrigation in Firebase
+            database.ref(`users/${userId}/irrigation`).set({
+                status: 'ON',
+                duration: 5, // minutes
+                lastUpdated: Date.now()
+            }).then(() => {
+                // Show alert
+                database.ref(`users/${userId}/alerts`).push({
+                    title: 'Irrigation Started',
+                    message: 'Watering system activated for 5 minutes.',
+                    type: 'info',
+                    timestamp: Date.now()
+                });
+                
+                alert('Irrigation started for 5 minutes');
+            });
+        });
+
+        fertilizeBtn.addEventListener('click', () => {
+            const userId = auth.currentUser.uid;
+            
+            // Trigger fertilization in Firebase
+            database.ref(`users/${userId}/fertilization`).set({
+                status: 'ON',
+                amount: 100, // ml
+                lastUpdated: Date.now()
+            }).then(() => {
+                // Show alert
+                database.ref(`users/${userId}/alerts`).push({
+                    title: 'Fertilization Started',
+                    message: 'Fertilizer dispensed (100ml).',
+                    type: 'info',
+                    timestamp: Date.now()
+                });
+                
+                alert('Fertilizer dispensed (100ml)');
+            });
+        });
+
+        analyticsBtn.addEventListener('click', () => {
+            alert('Analytics report will be generated and sent to your email.');
+        });
+
+        // Check auth state
+        auth.onAuthStateChanged((user) => {
+            if (user) {
+                // User is signed in
+                authContainer.classList.add('hidden');
+                dashboardContainer.classList.remove('hidden');
+                
+                // Initialize dashboard
+                initChart();
+                updateSensorData();
+                loadCameraFeed();
+                loadAlerts();
+                loadWeatherForecast();
+                
+                // Load user profile
+                loadUserProfile(user.uid);
+            } else {
+                // User is signed out
+                dashboardContainer.classList.add('hidden');
+                authContainer.classList.remove('hidden');
+            }
+        });
+    </script>
+</body>
+</html>
