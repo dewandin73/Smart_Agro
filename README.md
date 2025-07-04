@@ -4,3 +4,6 @@ Smart Agro Dashboard is a web-based application designed to help farmers and agr
 ![Screenshot 2025-06-13 at 06-08-42 SMART AGRO Dashboard](https://github.com/user-attachments/assets/e82881fa-18b1-425c-a539-b413a118ad1d)
 ![Screenshot 2025-06-13 at 06-09-40 SMART AGRO Dashboard](https://github.com/user-attachments/assets/17ace7c7-03fb-45b4-9cb5-e624b2ede448)
 ![Screenshot 2025-06-13 at 06-11-06 SMART AGRO Dashboard](https://github.com/user-attachments/assets/140f4ae9-57c0-422c-9112-8be6d6d44697)
+
+<b><h1>Live Site Link</h1><b>
+https://dewandin73.github.io/Smart_Agro/
